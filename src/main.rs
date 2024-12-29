@@ -1,3 +1,7 @@
+mod scanner;
+
+use scanner::scanner::Scanner;
+
 fn usage() {
     println!("Usage: lox <path to script>");
 }
@@ -16,6 +20,8 @@ unsafe fn run(source: &String) {
     for line in lines {
         println!("{}", line);
     }
+
+    let scanner: Scanner = Scanner::new(source.clone());
 
     if HAD_ERROR {
         std::process::exit(65);
