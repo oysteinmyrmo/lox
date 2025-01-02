@@ -1,5 +1,5 @@
 use crate::logger::logger::LoxLogger;
-use crate::scanner::token::{Literal, Token, TokenType};
+use crate::scanner::token::{Literal, Token, TokenType, KEYWORDS_MAP};
 
 pub struct Scanner {
     source: String,
@@ -21,6 +21,10 @@ impl Scanner {
             current: 0,
             line: 1,
         }
+    }
+
+    pub fn tokens(&self) -> &Vec<Token> {
+        &self.tokens
     }
 
     pub fn is_at_end(&self) -> bool {
@@ -107,11 +111,14 @@ impl Scanner {
             '"' => {
                 self.add_string();
             }
-            unknown => {
-                LoxLogger::scanner_error(
-                    self.line,
-                    format!("Unknown character found: {}", unknown),
-                );
+            c => {
+                if c.is_ascii_digit() {
+                    self.add_number();
+                } else if Self::is_alpha_or_underscore(c) {
+                    self.add_identifier();
+                } else {
+                    LoxLogger::scanner_error(self.line, format!("Unknown character found: {}", c));
+                }
             }
         }
     }
@@ -129,6 +136,18 @@ impl Scanner {
         self.source.as_bytes()[self.current] as char
     }
 
+    fn next_char(&self) -> char {
+        self.source.as_bytes()[self.current + 1] as char
+    }
+
+    fn is_alpha_or_underscore(c: char) -> bool {
+        c.is_ascii_alphabetic() || c == '_'
+    }
+
+    fn is_alpha_numeric_or_underscore(c: char) -> bool {
+        Self::is_alpha_or_underscore(c) || c.is_ascii_digit()
+    }
+
     fn advance(&mut self) -> char {
         let c = self.current_char();
         self.current += 1;
@@ -140,6 +159,13 @@ impl Scanner {
             return '\0';
         };
         self.current_char()
+    }
+
+    fn peek_next(&mut self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        self.next_char()
     }
 
     fn add_token(&mut self, token_type: TokenType) {
@@ -172,5 +198,105 @@ impl Scanner {
         let value = self.source[self.start + 1..self.current].to_string();
         self.add_token_with_literal(TokenType::String, Literal::String(value));
         self.advance(); // Skip the trailing '"'
+    }
+
+    fn add_number(&mut self) {
+        while self.peek().is_ascii_digit() {
+            self.advance();
+        }
+
+        // Look for a fractional part.
+        if self.peek() == '.' && self.peek_next().is_ascii_digit() {
+            self.advance();
+            while self.peek().is_ascii_digit() {
+                self.advance();
+            }
+        }
+
+        if let Ok(number) = self.source[self.start..self.current].parse::<f64>() {
+            self.add_token_with_literal(TokenType::Number, Literal::Number(number));
+        } else {
+            LoxLogger::scanner_error(self.line, "Invalid number literal".into());
+        };
+    }
+
+    fn add_identifier(&mut self) {
+        while Self::is_alpha_numeric_or_underscore(self.peek()) {
+            self.advance();
+        }
+
+        let text = self.source[self.start..self.current].to_string();
+        let token_type = KEYWORDS_MAP
+            .get(text.as_str())
+            .unwrap_or(&TokenType::Identifier);
+        self.add_token(token_type.clone());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::scanner::scanner::Scanner;
+    use crate::scanner::token::{Literal, Token, TokenType};
+
+    #[test]
+    fn test_string_literal() {
+        const SCRIPT: &str = r#""This is a string literal""#;
+        let mut scanner = Scanner::new(SCRIPT.into());
+        scanner.scan_tokens();
+
+        let tokens = scanner.tokens();
+        assert_eq!(tokens.len(), 2);
+
+        assert_eq!(
+            tokens[0],
+            Token {
+                token_type: TokenType::String,
+                lexeme: SCRIPT.into(),
+                literal: Literal::String(SCRIPT.into()),
+                line: 1,
+            }
+        );
+
+        assert_eq!(
+            tokens[1],
+            Token {
+                token_type: TokenType::Eof,
+                lexeme: "".into(),
+                literal: Literal::None,
+                line: 1,
+            }
+        );
+    }
+
+    #[test]
+    fn test_number_literal() {
+        const SCRIPT: &str = "123.456";
+        const NUMBER: f64 = 123.456;
+
+        let mut scanner = Scanner::new(SCRIPT.into());
+        scanner.scan_tokens();
+
+        let tokens = scanner.tokens();
+        assert_eq!(tokens.len(), 2);
+
+        assert_eq!(
+            tokens[0],
+            Token {
+                token_type: TokenType::Number,
+                lexeme: SCRIPT.into(),
+                literal: Literal::Number(NUMBER),
+                line: 1,
+            }
+        );
+
+        assert_eq!(
+            tokens[1],
+            Token {
+                token_type: TokenType::Eof,
+                lexeme: "".into(),
+                literal: Literal::None,
+                line: 1,
+            }
+        );
     }
 }
