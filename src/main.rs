@@ -1,7 +1,7 @@
 mod logger;
 mod scanner;
 
-use log::info;
+use log::{error, info};
 use logger::logger::LoxLogger;
 use scanner::scanner::Scanner;
 
@@ -18,11 +18,6 @@ fn usage() {
 }
 
 unsafe fn run(source: &String) {
-    let lines = source.lines();
-    for line in lines {
-        println!("{}", line);
-    }
-
     let mut scanner: Scanner = Scanner::new(source.clone());
     scanner.scan_tokens();
 
@@ -37,7 +32,7 @@ fn run_file(path: &String) {
             run(&source);
         },
         Err(e) => {
-            eprintln!("Error reading file {:?}: {}", path, e);
+            error!("Error reading file {:?}: {}", path, e);
             std::process::exit(-1);
         }
     }
@@ -56,7 +51,7 @@ fn run_prompt() {
                 HAD_ERROR = false;
             },
             Err(e) => {
-                eprintln!("Error: {}", e);
+                error!("Error: {}", e);
                 break;
             }
         }

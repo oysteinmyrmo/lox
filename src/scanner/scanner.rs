@@ -56,6 +56,15 @@ impl Scanner {
             '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
+            '/' => {
+                if self.match_char('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash);
+                }
+            }
             '!' => {
                 let token_type = if self.match_char('=') {
                     TokenType::BangEqual
@@ -88,8 +97,13 @@ impl Scanner {
                 };
                 self.add_token(token_type);
             }
+            // Ignore whitespace
+            ' ' => {}
             '\r' => {}
-            '\n' => {}
+            '\t' => {}
+            '\n' => {
+                self.line += 1;
+            }
             unknown => {
                 LoxLogger::scanner_error(
                     self.line,
@@ -116,6 +130,13 @@ impl Scanner {
         let c = self.current_char();
         self.current += 1;
         c
+    }
+
+    fn peek(&mut self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        };
+        self.current_char()
     }
 
     fn add_token(&mut self, token_type: TokenType) {
