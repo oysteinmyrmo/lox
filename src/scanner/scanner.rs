@@ -104,6 +104,9 @@ impl Scanner {
             '\n' => {
                 self.line += 1;
             }
+            '"' => {
+                self.add_string();
+            }
             unknown => {
                 LoxLogger::scanner_error(
                     self.line,
@@ -151,5 +154,23 @@ impl Scanner {
             literal,
             line: self.line,
         })
+    }
+
+    fn add_string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            LoxLogger::scanner_error(self.line, format!("{}", "Unterminated string literal"));
+            return;
+        }
+
+        let value = self.source[self.start + 1..self.current].to_string();
+        self.add_token_with_literal(TokenType::String, Literal::String(value));
+        self.advance(); // Skip the trailing '"'
     }
 }
