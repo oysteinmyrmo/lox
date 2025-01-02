@@ -1,18 +1,20 @@
+mod logger;
 mod scanner;
 
+use log::info;
+use logger::logger::LoxLogger;
 use scanner::scanner::Scanner;
 
+static LOGGER: LoxLogger = LoxLogger {};
+
+fn init_logger() {
+    log::set_logger(&LOGGER)
+        .map(|()| log::set_max_level(log::LevelFilter::Info))
+        .unwrap()
+}
+
 fn usage() {
-    println!("Usage: lox <path to script>");
-}
-
-fn report(line: u32, location: String, message: String) {
-    eprintln!("[line {}] Error{}: {}", line, location, message);
-}
-
-unsafe fn error(line: u32, message: String) {
-    report(line, "".into(), message);
-    HAD_ERROR = true;
+    info!("Usage: lox <path to script>");
 }
 
 unsafe fn run(source: &String) {
@@ -21,7 +23,8 @@ unsafe fn run(source: &String) {
         println!("{}", line);
     }
 
-    let scanner: Scanner = Scanner::new(source.clone());
+    let mut scanner: Scanner = Scanner::new(source.clone());
+    scanner.scan_tokens();
 
     if HAD_ERROR {
         std::process::exit(65);
@@ -65,6 +68,8 @@ fn run_prompt() {
 static mut HAD_ERROR: bool = false;
 
 fn main() {
+    init_logger();
+
     // Skip first argument since it is the path to the executable itself.
     let args: Vec<String> = std::env::args().skip(1).collect();
 
