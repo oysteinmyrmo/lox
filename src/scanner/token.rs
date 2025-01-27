@@ -62,7 +62,7 @@ pub enum TokenType {
 
 #[derive(Debug, PartialEq)]
 pub enum Literal {
-    None,
+    Nil,
     Number(f64),
     String(String),
     Boolean(bool),

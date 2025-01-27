@@ -42,7 +42,7 @@ impl Scanner {
         self.tokens.push(Token {
             token_type: TokenType::Eof,
             lexeme: "".into(),
-            literal: Literal::None,
+            literal: Literal::Nil,
             line: self.line,
         });
     }
@@ -169,7 +169,7 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        self.add_token_with_literal(token_type, Literal::None)
+        self.add_token_with_literal(token_type, Literal::Nil)
     }
 
     fn add_token_with_literal(&mut self, token_type: TokenType, literal: Literal) {
@@ -262,7 +262,7 @@ mod tests {
             Token {
                 token_type: TokenType::Eof,
                 lexeme: "".into(),
-                literal: Literal::None,
+                literal: Literal::Nil,
                 line: 1,
             }
         );
@@ -294,7 +294,7 @@ mod tests {
             Token {
                 token_type: TokenType::Eof,
                 lexeme: "".into(),
-                literal: Literal::None,
+                literal: Literal::Nil,
                 line: 1,
             }
         );
